@@ -1,0 +1,65 @@
+# YOLOv9-100
+nc: 12  # número de clases, ajusta según tu dataset
+depth_multiple: 1.0
+width_multiple: 1.0
+
+backbone:
+  [
+   [-1, 1, Silence, []],
+   [-1, 1, Conv, [64, 3, 2]],  # 1-P1/2
+   [-1, 1, Conv, [128, 3, 2]],  # 2-P2/4
+   [-1, 1, RepNCSPELAN4, [256, 128, 64, 2]],  # 3
+   [-1, 1, ADown, [256]],  # 4-P3/8
+   [-1, 1, RepNCSPELAN4, [512, 256, 128, 2]],  # 5
+   [-1, 1, ADown, [512]],  # 6-P4/16
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 7
+   [-1, 1, ADown, [1024]],  # 8-P5/32
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 9
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 10 (adicional)
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 11 (adicional)
+   [1, 1, CBLinear, [[64]]],  # 12
+   [3, 1, CBLinear, [[64, 128]]],  # 13
+   [5, 1, CBLinear, [[64, 128, 256]]],  # 14
+   [7, 1, CBLinear, [[64, 128, 256, 512]]],  # 15
+   [11, 1, CBLinear, [[64, 128, 256, 512, 1024]]],  # 16
+   [0, 1, Conv, [64, 3, 2]],  # 17-P1/2
+   [[12, 13, 14, 15, 16, -1], 1, CBFuse, [[0, 0, 0, 0, 0]]],  # 18
+   [-1, 1, Conv, [128, 3, 2]],  # 19-P2/4
+   [[13, 14, 15, 16, -1], 1, CBFuse, [[1, 1, 1, 1]]],  # 20
+   [-1, 1, RepNCSPELAN4, [256, 128, 64, 2]],  # 21
+   [-1, 1, RepNCSPELAN4, [256, 128, 64, 2]],  # 22 (adicional)
+   [-1, 1, ADown, [256]],  # 23-P3/8
+   [[14, 15, 16, -1], 1, CBFuse, [[2, 2, 2]]],  # 24
+   [-1, 1, RepNCSPELAN4, [512, 256, 128, 2]],  # 25
+   [-1, 1, RepNCSPELAN4, [512, 256, 128, 2]],  # 26 (adicional)
+   [-1, 1, ADown, [512]],  # 27-P4/16
+   [[15, 16, -1], 1, CBFuse, [[3, 3]]],  # 28
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 29
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 30 (adicional)
+   [-1, 1, ADown, [1024]],  # 31-P5/32
+   [[16, -1], 1, CBFuse, [[4]]],  # 32
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 33
+   [-1, 1, RepNCSPELAN4, [1024, 512, 256, 2]],  # 34 (adicional)
+  ]
+
+head:
+  [
+   [-1, 1, SPPELAN, [512, 256]],  # 35
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [[-1, 30], 1, Concat, [1]],  # cat backbone P4
+   [-1, 1, RepNCSPELAN4, [512, 512, 256, 2]],  # 38
+   [-1, 1, RepNCSPELAN4, [512, 512, 256, 2]],  # 39 (adicional)
+   [-1, 1, nn.Upsample, [None, 2, 'nearest']],
+   [[-1, 26], 1, Concat, [1]],  # cat backbone P3
+   [-1, 1, RepNCSPELAN4, [256, 256, 128, 2]],  # 42 (P3/8-small)
+   [-1, 1, RepNCSPELAN4, [256, 256, 128, 2]],  # 43 (adicional)
+   [-1, 1, ADown, [256]],
+   [[-1, 39], 1, Concat, [1]],  # cat head P4
+   [-1, 1, RepNCSPELAN4, [512, 512, 256, 2]],  # 46 (P4/16-medium)
+   [-1, 1, RepNCSPELAN4, [512, 512, 256, 2]],  # 47 (adicional)
+   [-1, 1, ADown, [512]],
+   [[-1, 35], 1, Concat, [1]],  # cat head P5
+   [-1, 1, RepNCSPELAN4, [512, 1024, 512, 2]],  # 50 (P5/32-large)
+   [-1, 1, RepNCSPELAN4, [512, 1024, 512, 2]],  # 51 (adicional)
+   [[43, 47, 51], 1, DDetect, [nc]],  # Detect(P3, P4, P5)
+  ]
